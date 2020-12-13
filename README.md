@@ -1,7 +1,7 @@
 # NSGPy
 
 To install,
-```
+```bash
 python setup.py install
 ```
 
