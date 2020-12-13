@@ -2,7 +2,7 @@
 
 To install,
 ```console
-python setup.py install
+foo@bar:~/NSGPy$ python setup.py install
 ```
 
 Basic usage,
