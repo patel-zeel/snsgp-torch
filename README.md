@@ -1,8 +1,8 @@
 # NSGPy
 
 To install,
-```console
-foo@bar:~/NSGPy$ python setup.py install
+```sh
+python setup.py install
 ```
 
 Basic usage,
