@@ -357,12 +357,15 @@ class LLS:
                 try:
                     bounds = [self.bounds for _ in range(len(params))]
                     ########### Set internal bounds ##################
+#                     bounds[1] = (10**-10, 100) # for sigma_n, GP_noise, should not be too high
                     if self.l_isotropic:
-                        bounds[2] = (10**-3, 1000) # for sigma_f_bar, Lengthscale_GP_variance
-                        bounds[3] = (10**-3, 1000)
+#                         bounds[2] = (10**-2, 10**5) # sigma_f_bar, should not be too low
+#                         bounds[4] = (10**-5, 100) # for sigma_n_bar, L_GP_noise, should not be too high
+                        pass
                     else:
-                        bounds[2:2+self.input_dim] = [(10**-3, 1000) for _ in range(self.input_dim)]
-                        bounds[2+self.input_dim:2+self.input_dim*2] = [(10**-3, 1000) for _ in range(self.input_dim)]
+#                         bounds[2:2+self.input_dim] = [(10**-2, 10**5) for _ in range(self.input_dim)] #lower bound
+#                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-5, 100) for _ in range(self.input_dim)]
+                        pass
                     #############################
                     res = scipy.optimize.minimize(self.mll, params, bounds=bounds, 
                                                   method=self.method)
@@ -423,12 +426,20 @@ class LLS:
         return_cov: bool, return covariance or not
         diag: bool, return only diagonal entries of covariance or not
         """
-        l_star = self.predict_lengthscales_(X_star) # l*
-        K__X_star__X = self.K_(X_star, l_star, self.X, self.l) # K_X*_X
+        self.X_star = X_star
         
-        mean = K__X_star__X@self.alpha # K_X*_X@alpha
+        l_star = self.predict_lengthscales_(X_star) # l*
+        l = self.predict_lengthscales_(self.X)
+        K__X_star__X = self.K_(X_star, l_star, self.X, l) # K_X*_X
+        K_XX = self.K_(self.X, l)
+        p,_ = K_XX.shape
+        K_XX.ravel()[::p+1] += self.sigma_n # adding noise variance to diagonal
+        L = np.linalg.cholesky(K_XX)
+        alpha = scipy.linalg.cho_solve((L, True), self.y)
+        
+        mean = K__X_star__X@alpha # K_X*_X@alpha    
         if return_cov:
-            v = scipy.linalg.cho_solve((self.L, True), K__X_star__X.T)
+            v = scipy.linalg.cho_solve((L, True), K__X_star__X.T)
             if diag: # return only diagonal entries of covariance
                 cov = self.K_(X_star, l_star, diag=True) - (K__X_star__X@v).diagonal()
             else:
