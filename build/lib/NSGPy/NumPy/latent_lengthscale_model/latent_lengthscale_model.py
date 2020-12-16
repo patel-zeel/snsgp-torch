@@ -323,8 +323,8 @@ class LLS:
             if params[p_i] is None:
                 params[p_i] = fitted_params[p_i]
         return self.mll(np.concatenate(params))
-
-    def fit(self, X, y, n_restarts=5):
+    
+    def fit(self, X, y, near_opt_inds=None, n_restarts=5):
         """
         Fit method for learning hyperparameters of GP
         
@@ -338,17 +338,24 @@ class LLS:
 
         self.X = X
         self.y = y
-        
-        if self.N_l_bar <= self.X.shape[0]:
-            kmeans = KMeans(n_clusters=self.N_l_bar, random_state=0)
-            self.X_bar = np.array(kmeans.fit(X).cluster_centers_).reshape(self.N_l_bar, self.input_dim)
+        if self.N_l_bar_method=='uniform':
+            if self.N_l_bar <= self.X.shape[0]:
+                kmeans = KMeans(n_clusters=self.N_l_bar, random_state=0)
+                self.X_bar = np.array(kmeans.fit(X).cluster_centers_).reshape(self.N_l_bar, self.input_dim)
+            else:
+                self.X_bar = X
+                self.l_bar = np.abs(np.random.rand(self.X_bar.shape[0], self.input_dim))
+        elif self.N_l_bar_method=='greedy':
+            assert len(near_opt_inds) == self.N_l_bar
+            
+            self.X_bar = X[near_opt_inds]
+                
         else:
-            self.X_bar = X
-            self.l_bar = np.abs(np.random.rand(self.X_bar.shape[0], self.input_dim))
+            raise NotImplementedError(self.N_l_bar_method+' is not implemented.')
         
         self.N_l_bar = len(self.X_bar)
         params = np.concatenate([self.sigma_f, self.sigma_n, self.sigma_f_bar,
-                                     self.sigma_l_bar, self.sigma_n_bar, self.l_bar.ravel()])
+                                         self.sigma_l_bar, self.sigma_n_bar, self.l_bar.ravel()])
 
         if self.optimizer=='scipy':
             optim_fun_val = np.inf
@@ -359,11 +366,11 @@ class LLS:
                     ########### Set internal bounds ##################
 #                     bounds[1] = (10**-10, 100) # for sigma_n, GP_noise, should not be too high
                     if self.l_isotropic:
-#                         bounds[2] = (10**-2, 10**5) # sigma_f_bar, should not be too low
+                        bounds[2] = (1., 1.) # sigma_f_bar, fixed
 #                         bounds[4] = (10**-5, 100) # for sigma_n_bar, L_GP_noise, should not be too high
                         pass
                     else:
-#                         bounds[2:2+self.input_dim] = [(10**-2, 10**5) for _ in range(self.input_dim)] #lower bound
+                        bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
 #                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-5, 100) for _ in range(self.input_dim)]
                         pass
                     #############################
