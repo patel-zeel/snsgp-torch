@@ -289,6 +289,14 @@ class LLS:
             L_theta += np.sum(np.log(np.diag(self.L_bar[:,:,dim])))
         return L_theta
     
+    def lsq(self, params):
+        sigma_f, sigma_n, sigma_f_bar, sigma_l_bar, sigma_n_bar, l_bar = self.parse_params(params)
+        
+        l = self.predict_lengthscales(self.X, sigma_f_bar, sigma_l_bar, sigma_n_bar, l_bar)
+        Kernel = self.K(sigma_f, X, l)
+        Kernel.ravel()[::p+1] += sigma_n
+        return np.sum(np.square(Kernel.ravel() - self.cov.ravel()))
+    
     def custom_mll(self, X, y):
         """
         Marginal log likelihood given parameters for any X and y. L(theta)->mll(params)
@@ -324,7 +332,7 @@ class LLS:
                 params[p_i] = fitted_params[p_i]
         return self.mll(np.concatenate(params))
     
-    def fit(self, X, y, near_opt_inds=None, n_restarts=5):
+    def fit(self, X, y, near_opt_inds=None, cov = None, n_restarts=5):
         """
         Fit method for learning hyperparameters of GP
         
@@ -335,6 +343,7 @@ class LLS:
         assert len(X.shape) == 2, "shape of X must be 2D"
         assert len(y.shape) == 2, "shape of y must be 2D"
         assert y.shape[1] == 1, "y must be of shape (*,1)"
+        self.cov = cov
 
         self.X = X
         self.y = y
@@ -371,7 +380,8 @@ class LLS:
                         pass
                     else:
                         bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
-#                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-5, 100) for _ in range(self.input_dim)]
+                        bounds[2+self.input_dim*2:2+self.input_dim*3] = [(0, 0) for _ in range(self.input_dim)]
+#                         bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
                         pass
                     #############################
                     res = scipy.optimize.minimize(self.mll, params, bounds=bounds, 
@@ -413,6 +423,27 @@ class LLS:
 #             self.sigma_f, self.sigma_n, self.sigma_f_bar,\
 #             self.sigma_l_bar, self.sigma_n_bar, self.l_bar = self.parse_params(params)
 #########################################
+        elif self.optimizer=='lsq':
+            bounds = [self.bounds for _ in range(len(params))]
+            ########### Set internal bounds ##################
+#           bounds[1] = (10**-10, 100) # for sigma_n, GP_noise, should not be too high
+            if self.l_isotropic:
+                bounds[2] = (1., 1.) # sigma_f_bar, fixed
+#               bounds[4] = (10**-5, 100) # for sigma_n_bar, L_GP_noise, should not be too high
+                pass
+            else:
+                bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
+                #bounds[2+self.input_dim:2+self.input_dim*2] = [(0.01, 10) for _ in range(self.input_dim)]
+                bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
+                pass
+            #############################
+            res = scipy.optimize.minimize(self.lsq, params, bounds=bounds, 
+                                          method=self.method)
+
+            optim_fun_val = res.fun
+            params = res.x
+            self.sigma_f, self.sigma_n, self.sigma_f_bar,\
+            self.sigma_l_bar, self.sigma_n_bar, self.l_bar = self.parse_params(params)
     
         self.params = {'likelihood (mll)':optim_fun_val, 
                        'GP_variance (sigma_f)':self.sigma_f,
@@ -424,7 +455,28 @@ class LLS:
 
     def get_params(self): # Get model parameters
         return self.params
-
+    
+    def predict_plot(self, ax_array, X_star, y_star):
+        mean, cov = self.predict(X_star, return_cov=True, diag=False)
+        l = self.predict_lengthscales_(self.X)
+        mean = mean.squeeze()
+        std2 = np.sqrt(cov.diagonal())*2
+        for dim in range(X_star.shape[1]):
+            sorted_ind = np.argsort(X_star[:, dim])
+            sorted_x_star = X_star[sorted_ind, dim]
+            sorted_mean = mean[sorted_ind]
+            ax_array[0, dim].scatter(self.X[:, dim], self.y.squeeze(), label='Train')
+            ax_array[0, dim].plot(sorted_x_star, y_star[sorted_ind].squeeze(), marker='o',color='g',label='Test')
+            ax_array[0, dim].plot(sorted_x_star, sorted_mean, marker='o',color='r',label='Pred')
+            ax_array[0, dim].fill_between(sorted_x_star, sorted_mean-std2, sorted_mean+std2, alpha=0.2)
+            ax_array[0, dim].legend()
+            sorted_ind = np.argsort(self.X[:,dim])
+            sorted_x = self.X[sorted_ind, dim]
+            ax_array[1, dim].plot(sorted_x, l[sorted_ind, dim], label='Lengthscales')
+            ax_array[1, dim].scatter(self.X_bar[:, dim], self.l_bar[:, dim], label='Latent points')
+            ax_array[1, dim].legend()
+        return ax_array
+    
     def predict(self, X_star, return_cov=True, diag=True): # Predicting output
         """
         Predict method to predict outputs.
