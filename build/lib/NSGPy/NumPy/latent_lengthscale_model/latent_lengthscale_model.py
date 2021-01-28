@@ -164,7 +164,7 @@ class LLS:
                     raise NotImplementedError('LLS: Optimizer: '+self.optimizer+' is not implemented')
 
             tmp_L_bar = np.linalg.cholesky(self.K__X_bar__X_bar[:,:,dim])           # Cholesky decomposition
-            tmp_alpha_bar = scipy.linalg.cho_solve((tmp_L_bar, True), np.log(l_bar[:,dim:dim+1]))
+            tmp_alpha_bar = scipy.linalg.cho_solve((tmp_L_bar, True), np.log10(l_bar[:,dim:dim+1]))
                                                                                     # derive alpha from L_bar and l_bar
             L_barL.append(tmp_L_bar[:,:,np.newaxis])
             alphaL.append(tmp_alpha_bar[:,np.newaxis,:])
@@ -172,7 +172,7 @@ class LLS:
         self.alpha_bar = np.concatenate(alphaL, axis=1) # vectorize alpha_bar
         self.L_bar = np.concatenate(L_barL, axis=2) # vectorize L_bar
     
-        l = np.exp(np.einsum('pqr,qrs->pr', self.K__X__X_bar, self.alpha_bar)) # vectorized predicted lengthscales
+        l = 10**(np.einsum('pqr,qrs->pr', self.K__X__X_bar, self.alpha_bar)) # vectorized predicted lengthscales
 
         return l
     
@@ -370,22 +370,24 @@ class LLS:
             optim_fun_val = np.inf
             fit_flag = 0 # fitted or not in any iterations
             for it in range(n_restarts): # Multiple restarts of optimizer
+                np.random.seed(it)
+                params = np.random.uniform(8,12,size=len(params))
                 try:
                     bounds = [self.bounds for _ in range(len(params))]
                     ########### Set internal bounds ##################
 #                     bounds[1] = (10**-10, 100) # for sigma_n, GP_noise, should not be too high
                     if self.l_isotropic:
-                        bounds[2] = (1., 1.) # sigma_f_bar, fixed
+#                         bounds[2] = (1., 1.) # sigma_f_bar, fixed
 #                         bounds[4] = (10**-5, 100) # for sigma_n_bar, L_GP_noise, should not be too high
                         pass
                     else:
-                        bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
-                        bounds[2+self.input_dim*2:2+self.input_dim*3] = [(0, 0) for _ in range(self.input_dim)]
+#                           zind
+#                         bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
+#                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-5, 10**-5) for _ in range(self.input_dim)]
 #                         bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
                         pass
                     #############################
-                    res = scipy.optimize.minimize(self.mll, params, bounds=bounds, 
-                                                  method=self.method)
+                    res = scipy.optimize.minimize(self.mll, params, bounds=bounds) #method=self.method)
                     
                     if res.fun<optim_fun_val:
                         optim_fun_val = res.fun
@@ -407,7 +409,7 @@ class LLS:
                         raise ValueError('LLS: New error: '+e.__str__())
                         
                 np.random.seed(it+1) # setting random seed for next iteration
-                params = np.abs(np.random.rand(len(params))) # setting random params for next iteration
+#                 params = np.abs(np.random.rand(len(params))) # setting random params for next iteration
             
             assert fit_flag==1, 'LLS: Not fitted in any iterations'
 
@@ -434,7 +436,7 @@ class LLS:
             else:
                 bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
                 #bounds[2+self.input_dim:2+self.input_dim*2] = [(0.01, 10) for _ in range(self.input_dim)]
-                bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
+#                 bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
                 pass
             #############################
             res = scipy.optimize.minimize(self.lsq, params, bounds=bounds, 
@@ -459,6 +461,7 @@ class LLS:
     def predict_plot(self, ax_array, X_star, y_star):
         mean, cov = self.predict(X_star, return_cov=True, diag=False)
         l = self.predict_lengthscales_(self.X)
+        print(self.l_bar, l)
         mean = mean.squeeze()
         std2 = np.sqrt(cov.diagonal())*2
         for dim in range(X_star.shape[1]):
@@ -496,7 +499,7 @@ class LLS:
         L = np.linalg.cholesky(K_XX)
         alpha = scipy.linalg.cho_solve((L, True), self.y)
         
-        mean = K__X_star__X@alpha # K_X*_X@alpha    
+        mean = K__X_star__X@alpha # K_X*_X@alpha
         if return_cov:
             v = scipy.linalg.cho_solve((L, True), K__X_star__X.T)
             if diag: # return only diagonal entries of covariance
