@@ -371,7 +371,7 @@ class LLS:
             fit_flag = 0 # fitted or not in any iterations
             for it in range(n_restarts): # Multiple restarts of optimizer
                 np.random.seed(it)
-                params = np.random.uniform(8,12,size=len(params))
+                params = np.random.uniform(0.9,1.1,size=len(params))
                 try:
                     bounds = [self.bounds for _ in range(len(params))]
                     ########### Set internal bounds ##################
@@ -383,7 +383,7 @@ class LLS:
                     else:
 #                           zind
 #                         bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
-#                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-5, 10**-5) for _ in range(self.input_dim)]
+#                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-10, 10**-10) for _ in range(self.input_dim)]
 #                         bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
                         pass
                     #############################
@@ -461,7 +461,7 @@ class LLS:
     def predict_plot(self, ax_array, X_star, y_star):
         mean, cov = self.predict(X_star, return_cov=True, diag=False)
         l = self.predict_lengthscales_(self.X)
-        print(self.l_bar, l)
+#         print(self.l_bar, l)
         mean = mean.squeeze()
         std2 = np.sqrt(cov.diagonal())*2
         for dim in range(X_star.shape[1]):
