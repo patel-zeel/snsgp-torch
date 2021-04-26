@@ -382,8 +382,8 @@ class LLS:
                         pass
                     else:
 #                           zind
-#                         bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
-#                         bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-10, 10**-10) for _ in range(self.input_dim)]
+                        bounds[2:2+self.input_dim] = [(1., 1.) for _ in range(self.input_dim)] #fixed
+                        bounds[2+self.input_dim*2:2+self.input_dim*3] = [(10**-5, 10**-5) for _ in range(self.input_dim)]
 #                         bounds[2+self.input_dim*3:] = [(0.01, 100) for _ in range(len(bounds[2+self.input_dim*3:]))]
                         pass
                     #############################
