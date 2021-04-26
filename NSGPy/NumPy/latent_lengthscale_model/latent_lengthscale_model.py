@@ -500,11 +500,12 @@ class LLS:
         alpha = scipy.linalg.cho_solve((L, True), self.y)
         
         mean = K__X_star__X@alpha # K_X*_X@alpha
+        p_star = X_star.shape[0]
         if return_cov:
             v = scipy.linalg.cho_solve((L, True), K__X_star__X.T)
             if diag: # return only diagonal entries of covariance
-                cov = self.K_(X_star, l_star, diag=True) - (K__X_star__X@v).diagonal()
+                cov = self.K_(X_star, l_star, diag=True)+np.ones(p_star)*self.sigma_n - (K__X_star__X@v).diagonal()
             else:
-                cov = self.K_(X_star, l_star) - K__X_star__X@v
+                cov = self.K_(X_star, l_star)+np.eye(p_star)*self.sigma_n - K__X_star__X@v
             return mean, cov
         return mean
