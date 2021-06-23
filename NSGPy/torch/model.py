@@ -68,11 +68,11 @@ class NSGPRegression():
         l2 = torch.cat(self.get_LS(X2), dim=1)
         l1prod = torch.prod(l1, dim=1)[:, None]
         l2prod = torch.prod(l2, dim=1)[:, None]
-        l1l2sqrt = torch.sqrt(l1prod@l2prod.T) # (n, m)
+        l1l2sqrt = torch.sqrt(2*l1prod@l2prod.T) # (n, m)
         ##############################################
         l1sqr = torch.square(l1)
         l2sqr = torch.square(l2)
-        l1l2b2sqr = (l1sqr[:,None,:] + l2sqr[None,:,:])/2 # (n, m, d)
+        l1l2b2sqr = (l1sqr[:,None,:] + l2sqr[None,:,:]) # (n, m, d)
         l1l2b2sqrprod = torch.prod(l1l2b2sqr, dim=2) # (n, m)
         
         suffix = l1l2sqrt/torch.sqrt(l1l2b2sqrprod) # (n, m)

@@ -1,33 +1,40 @@
+# Common imports
 import tensorflow as tf
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
-import matplotlib.pyplot as plt
-import numpy as np
-from lab.tensorflow import B
-from stheno import EQ, GP
-from varz.tensorflow import Vars, minimise_l_bfgs_b
-import warnings
-warnings.filterwarnings('ignore')
-
 from sklearn.cluster import KMeans
 
+# Stheno related imports
+import lab.tensorflow as B
+from stheno import GP, EQ
+from varz.tensorflow import Vars, minimise_l_bfgs_b
+
+# Import NSEQ kernel
+from nseq import NSEQ
+
 class NSGPRegression:
-    def __init__(self, X, y, num_inducing_points, seed=0):
+    def __init__(self, X, y, num_inducing_points, f, vs, seed=0):
         self.num_inducing_points = num_inducing_points
         self.X = X
         self.y = y
+        self.vs = vs
 
         assert len(X.shape) == 2
         assert len(y.shape) == 2
         self.input_dim = X.shape[1]
         B.random.set_random_seed(seed)
-        # Defining X_bar (Locations where latent lengthscales are to be learnt)
-        # XY_choice = tf.concat([self.X, self.y], axis=1)
-        self.X_bar = KMeans(n_clusters=num_inducing_points, random_state=seed).fit(self.X).cluster_centers_
+        self.X_bar = f(self.X, num_inducing_points) # f to select inducing points
         
-    def LocalGP(self, vs, X): # Getting lengthscales for entire train_X (self.X)
+    def init_params(self, seed):
+        B.random.set_random_seed(seed)
+        
+        self.vs.positive(init=, shape=, name='local_std')
+
+    def LocalGP(self, vs, X, return_logpdf=False): # Getting lengthscales for entire train_X (self.X)
         l_list = []
+        if return_logpdf:
+            log_pdf_list = []
         for dim in range(self.input_dim):
             f = GP(vs.positive(init = B.rand()+1, name='local_std')**2 *\
                 EQ().stretch(vs.positive(B.rand()+1, name='local_gp_ls'+str(dim))))
@@ -36,6 +43,8 @@ class NSGPRegression:
                                     shape=(self.num_inducing_points,1), name='local_ls'+str(dim)))
             l = f_post(X[:, dim]).mean.mat
             l_list.append(l)
+            if return_logpdf:
+                log_pdf_list.append(f(self.X_bar[:, dim], ))
         
         return l_list
     
@@ -43,7 +52,7 @@ class NSGPRegression:
         l_list = self.LocalGP(vs, self.X)
         global_ls = tf.concat(l_list, axis=1)
         
-        f = GP(vs.positive(B.rand()+1, name='global_std')**2 * EQ().stretch(global_ls))
+        f = GP(vs.positive(B.rand()+1, name='global_std')**2 * NSEQ(global_ls, global_ls))
         
         return -f(self.X, vs.positive(B.rand()+1, name='global_noise')**2).logpdf(self.y)
     
