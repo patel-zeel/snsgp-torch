@@ -1,4 +1,6 @@
 # Imports to create a new kernel
+import lab as B
+import tensorflow as tf
 from algebra.util import identical
 from matrix import Dense
 from plum import dispatch
@@ -21,7 +23,7 @@ class NSEQ(Kernel):
         # backend-agnostic implementation.
         ls2 = self.scale1**2 + self.scale2**2
         prefix = tf.reduce_prod((2*self.scale1*self.scale2/ls2)**0.5, axis=2)
-        return prefix * B.exp(-(dist2/ls2).sum(axis=2))
+        return prefix * B.exp(-B.sum(dist2/ls2, axis=2))
 
     def render(self, formatter):
         # This method determines how the kernel is displayed.
