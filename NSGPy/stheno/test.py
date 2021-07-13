@@ -40,7 +40,7 @@ y_scaled = yscaler.fit_transform(y)
 X_test_scaled = Xscaler.transform(X_test)
 
 ###################
-num_inducing_points = 3
+num_inducing_points = 5
 seed = 0
 f_ind = lambda X, num_ind: KMeans(n_clusters=num_ind, random_state=seed).fit(X_scaled, y_scaled).cluster_centers_
 model = NSGPRegression(X_scaled, y_scaled, num_inducing_points, f_indu=f_ind, seed=0)
