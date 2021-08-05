@@ -3,16 +3,16 @@ import pytest
 
 def test_model():
     from nsgp import NSGP
-    from nsgp.utils import InducingFunctions
+    from nsgp.utils.inducing_functions import f_kmeans
     import torch
 
     X = torch.rand(1000, 3, dtype=torch.float32)*100
     y = (X[:, 0] + X[:, 1] + X[:, 2]).reshape(-1, 1) + torch.rand(1000, 1)
 
     X_new = torch.rand(10000, 3, dtype=torch.float32)
+    X_bar = f_kmeans(X, num_inducing_points=4, random_state=None)
 
-    indu = InducingFunctions()
-    model = NSGP(X, y, f_inducing=indu.f_kmeans, jitter=10**-5)
+    model = NSGP(X, y, X_bar=X_bar, jitter=10**-5)
     optim = torch.optim.Adam(model.parameters(), lr=0.1)
 
     losses = []

@@ -3,7 +3,7 @@ import numpy as np
 
 
 class NSGP(torch.nn.Module):
-    def __init__(self, X, y, num_inducing_points=5, f_inducing=None,
+    def __init__(self, X, y, num_inducing_points=5, X_bar=None,
                  jitter=10**-8, random_state=None, local_noise=True, local_std=True):
         super().__init__()
 
@@ -16,15 +16,12 @@ class NSGP(torch.nn.Module):
 
         self.X = X
         self.y = y
+        self.X_bar = X_bar
 
         self.N = self.X.shape[0]
         self.input_dim = self.X.shape[1]
 
-        # Defining X_bar (Locations where latent lengthscales are to be learnt)
-        self.X_bar = f_inducing(
-            self.X.cpu(), num_inducing_points, random_state)
-
-        self.num_inducing_points = num_inducing_points
+        self.num_inducing_points = self.X_bar.shape[0]
         self.jitter = jitter
         self.local_noise = local_noise
         self.local_std = local_std

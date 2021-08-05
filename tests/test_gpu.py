@@ -3,33 +3,22 @@ import matplotlib.pyplot as plt
 from time import time
 
 
-def test_model():
+def model(device):
     from nsgp import NSGP
-    from nsgp.utils import InducingFunctions
+    from nsgp.utils.inducing_functions import f_kmeans
     import torch
     import numpy as np
-    device = 'cuda'
 
-    num_low = 25
-    num_high = 25
-    gap = -.1
-    noise = 0.0001
-    X = torch.vstack((torch.linspace(-1, -gap/2.0, num_low)[:, np.newaxis],
-                      torch.linspace(gap/2.0, 1, num_high)[:, np.newaxis])).reshape(-1, 1)
-    y = torch.vstack((torch.zeros((num_low, 1)), torch.ones((num_high, 1))))
-    scale = torch.sqrt(y.var())
-    offset = y.mean()
-    y = ((y-offset)/scale).reshape(-1, 1)
+    X = torch.rand(1000, 3)*100
+    y = (X[:, 0] + X[:, 1] + X[:, 2]).reshape(-1, 1) + torch.rand(1000, 1)
 
-    X_new = torch.linspace(-1, 1, 100).reshape(-1, 1)
-
+    X_new = torch.rand(10000, 3)
+    X_bar = f_kmeans(X, num_inducing_points=4, random_state=None).to(device)
     X = X.to(device)
     y = y.to(device)
     X_new = X_new.to(device)
 
-    indu = InducingFunctions(device)
-    model = NSGP(X, y, f_inducing=indu.f_kmeans,
-                 num_inducing_points=5, jitter=10**-5)
+    model = NSGP(X, y, X_bar=X_bar, jitter=10**-5)
     optim = torch.optim.Adam(model.parameters(), lr=0.01)
     # optim = torch.optim.SGD(model.parameters(), lr=0.01)
 
@@ -65,5 +54,6 @@ def test_model():
         # fig.savefig('./test_step_function.pdf')
 
 
-if __name__ == '__main__':
-    test_model()
+def test_model():
+    model('cpu')
+    model('cuda')
