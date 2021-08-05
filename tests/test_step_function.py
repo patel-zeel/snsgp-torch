@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 def test_model():
     from nsgp import NSGP
+    from nsgp.utils import InducingFunctions
     import torch
     import numpy as np
 
@@ -20,7 +21,8 @@ def test_model():
 
     X_new = torch.linspace(-1, 1, 100).reshape(-1, 1)
 
-    model = NSGP(X, y, num_inducing_points=5, jitter=10**-5)
+    indu = InducingFunctions()
+    model = NSGP(X, y, f_inducing=indu.f_kmeans, jitter=10**-5)
     optim = torch.optim.Adam(model.parameters(), lr=0.01)
     # optim = torch.optim.SGD(model.parameters(), lr=0.01)
 

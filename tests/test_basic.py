@@ -3,6 +3,7 @@ import pytest
 
 def test_model():
     from nsgp import NSGP
+    from nsgp.utils import InducingFunctions
     import torch
 
     X = torch.rand(1000, 3, dtype=torch.float32)*100
@@ -10,7 +11,8 @@ def test_model():
 
     X_new = torch.rand(10000, 3, dtype=torch.float32)
 
-    model = NSGP(X, y, jitter=10**-5)
+    indu = InducingFunctions()
+    model = NSGP(X, y, f_inducing=indu.f_kmeans, jitter=10**-5)
     optim = torch.optim.Adam(model.parameters(), lr=0.1)
 
     losses = []
