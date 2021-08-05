@@ -25,6 +25,7 @@ class NSGP(torch.nn.Module):
         self.jitter = jitter
         self.local_noise = local_noise
         self.local_std = local_std
+        self.random_state = random_state
 
         # Local params
         self.local_gp_ls = self.param((self.input_dim,))
@@ -53,6 +54,9 @@ class NSGP(torch.nn.Module):
         return torch.nn.Parameter(torch.empty(shape, dtype=self.X.dtype), requires_grad=requires_grad)
 
     def initialize_params(self):
+        if self.random_state == None:
+            self.random_state = int(torch.rand(1)*1000)
+        torch.manual_seed(self.random_state)
         for param in self.parameters():
             torch.nn.init.normal_(param, mean=0.0, std=1.0)
 

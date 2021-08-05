@@ -20,8 +20,8 @@ def test_model():
     y = ((y-offset)/scale).reshape(-1, 1)
 
     X_new = torch.linspace(-1, 1, 100).reshape(-1, 1)
-    X_bar = f_kmeans(X, num_inducing_points=5, random_state=None)
-    model = NSGP(X, y, X_bar=X_bar, jitter=10**-5)
+    X_bar = f_kmeans(X, num_inducing_points=5, random_state=0)
+    model = NSGP(X, y, X_bar=X_bar, jitter=10**-5, random_state=0)
     optim = torch.optim.Adam(model.parameters(), lr=0.01)
     # optim = torch.optim.SGD(model.parameters(), lr=0.01)
 
