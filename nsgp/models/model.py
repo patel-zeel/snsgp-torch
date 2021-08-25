@@ -55,11 +55,14 @@ class NSGP(torch.nn.Module):
         return torch.nn.Parameter(torch.empty(shape, dtype=self.X.dtype), requires_grad=requires_grad)
 
     def initialize_params(self):
-        if self.random_state == None:
+        if self.random_state is None:
             self.random_state = int(torch.rand(1)*1000)
         torch.manual_seed(self.random_state)
         for param in self.parameters():
-            torch.nn.init.normal_(param, mean=0.0, std=1.0)
+            if param.requires_grad:
+                torch.nn.init.normal_(param, mean=0.0, std=1.0)
+            else:
+                torch.nn.init.constant_(param, 1.)
 
     def LocalKernel(self, x1, x2, dim):  # kernel of local gp (GP_l)
         dist = torch.square(x1 - x2.T)

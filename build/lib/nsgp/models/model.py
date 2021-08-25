@@ -15,7 +15,8 @@ class NSGP(torch.nn.Module):
             y.shape)
 
         self.X = X
-        self.y = y
+        self.raw_mean = y.mean()
+        self.y = y - self.raw_mean
         self.X_bar = X_bar
 
         self.N = self.X.shape[0]
@@ -54,11 +55,14 @@ class NSGP(torch.nn.Module):
         return torch.nn.Parameter(torch.empty(shape, dtype=self.X.dtype), requires_grad=requires_grad)
 
     def initialize_params(self):
-        if self.random_state == None:
+        if self.random_state is None:
             self.random_state = int(torch.rand(1)*1000)
         torch.manual_seed(self.random_state)
         for param in self.parameters():
-            torch.nn.init.normal_(param, mean=0.0, std=1.0)
+            if param.requires_grad:
+                torch.nn.init.normal_(param, mean=0.0, std=1.0)
+            else:
+                torch.nn.init.constant_(param, 1.)
 
     def LocalKernel(self, x1, x2, dim):  # kernel of local gp (GP_l)
         dist = torch.square(x1 - x2.T)
@@ -150,7 +154,7 @@ class NSGP(torch.nn.Module):
         L = torch.linalg.cholesky(K)
         alpha = torch.cholesky_solve(self.y, L)
 
-        pred_mean = K_star@alpha
+        pred_mean = K_star@alpha + self.raw_mean
 
         v = torch.cholesky_solve(K_star.T, L)
         pred_var = K_star_star - K_star@v
