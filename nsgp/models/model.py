@@ -15,7 +15,8 @@ class NSGP(torch.nn.Module):
             y.shape)
 
         self.X = X
-        self.y = y
+        self.raw_mean = y.mean()
+        self.y = y - self.raw_mean
         self.X_bar = X_bar
 
         self.N = self.X.shape[0]
@@ -150,7 +151,7 @@ class NSGP(torch.nn.Module):
         L = torch.linalg.cholesky(K)
         alpha = torch.cholesky_solve(self.y, L)
 
-        pred_mean = K_star@alpha
+        pred_mean = K_star@alpha + self.raw_mean
 
         v = torch.cholesky_solve(K_star.T, L)
         pred_var = K_star_star - K_star@v
