@@ -99,10 +99,14 @@ class NSGP(torch.nn.Module):
                 v = torch.cholesky_solve(k_star.T, chol)
 
                 k_post = k_star_star - k_star@v
-                dk_post = k_post.diagonal()
-                dk_post += self.jitter
-                post_chol = torch.linalg.cholesky(k_post)
-                B.append(torch.log(post_chol.diagonal()))
+                k_post_det = torch.det(k_post)
+                if k_post_det<=0:
+                    k_post_det = 10**-20
+                B.append(torch.log((2*self.pi)**(self.N/2) * k_post_det).reshape(-1,1))
+                # dk_post = k_post.diagonal()
+                # dk_post += self.jitter
+                # post_chol = torch.linalg.cholesky(k_post)
+                # B.append(torch.log(post_chol.diagonal()))
 
         if self.training:
             return l_list, B
@@ -116,15 +120,26 @@ class NSGP(torch.nn.Module):
             l1 = l[:, None, :]
             l2 = l[None, :, :]
         else:
-            l1 = torch.cat(self.get_LS(X1), dim=1)[:, None, :]
-            l2 = torch.cat(self.get_LS(X2), dim=1)[None, :, :]
-
-        lsq = torch.square(l1) + torch.square(l2)
-        suffix = torch.sqrt(2 * l1 * l2 / lsq).prod(axis=2)
-        dist = torch.square(X1[:, None, :] - X2[None, :, :])
-        scaled_dist = dist/lsq
+            l1 = torch.cat(self.get_LS(X1), dim=1)[:, None, :] # n,d -> n,1,d
+            l2 = torch.cat(self.get_LS(X2), dim=1)[None, :, :] # m,d -> 1,m,d = n,m,d
+        
+        suffix = None
+        scaled_dist = None
+        for d in range(l1.shape[2]):
+            lsq = torch.square(l1[:,:,d]) + torch.square(l2[:,:,d])
+            if suffix is None:
+                suffix = torch.sqrt(2 * l1[:,:,d] * l2[:,:,d] / lsq)
+            else:
+                suffix = suffix * torch.sqrt(2 * l1[:,:,d] * l2[:,:,d] / lsq)
+            dist = torch.square(X1[:, None, d] - X2[None, :, d])
+            if scaled_dist is None:
+                scaled_dist = dist/lsq
+            else:
+                scaled_dist = scaled_dist + dist/lsq
+        
+        
         K = self.global_gp_std**2 * \
-            suffix * torch.exp(-scaled_dist.sum(dim=2))
+            suffix * torch.exp(-scaled_dist)
 
         if self.training:
             return K, B

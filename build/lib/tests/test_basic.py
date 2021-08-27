@@ -18,6 +18,8 @@ def test_model():
     losses = []
     model.train()
     for _ in range(10):
+        # for param in model.parameters():
+        #     param.clamp_min(10**-5)
         optim.zero_grad()
         loss = model.nlml()
         losses.append(loss.item())

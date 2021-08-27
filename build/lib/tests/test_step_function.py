@@ -11,10 +11,9 @@ def test_model():
     num_low = 25
     num_high = 25
     gap = -.1
-    noise = 0.0001
     X = torch.vstack((torch.linspace(-1, -gap/2.0, num_low)[:, np.newaxis],
                       torch.linspace(gap/2.0, 1, num_high)[:, np.newaxis])).reshape(-1, 1)
-    y = torch.vstack((torch.zeros((num_low, 1)), torch.ones((num_high, 1))))
+    y = torch.vstack((torch.zeros((num_low, 1)), torch.ones((num_high, 1))))# + torch.rand(num_high+num_low, 1)
     scale = torch.sqrt(y.var())
     offset = y.mean()
     y = ((y-offset)/scale).reshape(-1, 1)
@@ -22,7 +21,7 @@ def test_model():
     X_new = torch.linspace(-1, 1, 100).reshape(-1, 1)
     X_bar = f_kmeans(X, num_inducing_points=5, random_state=0)
     model = NSGP(X, y, X_bar=X_bar, jitter=10**-5, random_state=1)
-    optim = torch.optim.Adam(model.parameters(), lr=0.01)
+    optim = torch.optim.Adam(model.parameters(), lr=0.1)
     # optim = torch.optim.SGD(model.parameters(), lr=0.01)
 
     losses = []
