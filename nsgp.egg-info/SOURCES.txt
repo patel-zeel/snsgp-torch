@@ -15,4 +15,5 @@ nsgp/utils/train.py
 tests/__init__.py
 tests/test_basic.py
 tests/test_gpu.py
+tests/test_olympic.py
 tests/test_step_function.py
