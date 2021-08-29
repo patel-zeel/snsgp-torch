@@ -2,8 +2,8 @@ import pytest
 
 
 def test_model():
-    from nsgp import NSGP
-    from nsgp.utils.inducing_functions import f_kmeans
+    from snsgp import SNSGP
+    from snsgp.utils.inducing_functions import f_kmeans
     import torch
 
     X = torch.rand(1000, 3, dtype=torch.float32)*100
@@ -11,8 +11,9 @@ def test_model():
 
     X_new = torch.rand(10000, 3, dtype=torch.float32)
     X_bar = f_kmeans(X, num_inducing_points=4, random_state=None)
+    Xm = f_kmeans(X, num_inducing_points=100, random_state=None)
 
-    model = NSGP(X, y, X_bar=X_bar, jitter=10**-5)
+    model = SNSGP(X, y, X_bar=X_bar, Xm=Xm, jitter=10**-5)
     optim = torch.optim.Adam(model.parameters(), lr=0.1)
 
     losses = []
@@ -21,7 +22,7 @@ def test_model():
         # for param in model.parameters():
         #     param.clamp_min(10**-5)
         optim.zero_grad()
-        loss = model.nlml()
+        loss = model()
         losses.append(loss.item())
         loss.backward()
         optim.step()

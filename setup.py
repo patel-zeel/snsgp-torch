@@ -5,7 +5,7 @@ import codecs
 
 from setuptools import find_packages, setup
 
-DISTNAME = 'nsgp'
+DISTNAME = 'snsgp'
 DESCRIPTION = 'Non-stationary GPs'
 with codecs.open('README.md', encoding='utf-8-sig') as f:
     LONG_DESCRIPTION = f.read()

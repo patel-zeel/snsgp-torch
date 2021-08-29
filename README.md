@@ -1,3 +1,3 @@
 # NSGPy
 
-Current development is in Hamilton
+Sparse Non-stationary GPs with Nystrom approximation and Woodbury formula.

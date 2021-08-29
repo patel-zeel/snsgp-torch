@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 
 
 def test_model():
-    from nsgp import NSGP
-    from nsgp.utils.inducing_functions import f_kmeans
+    from snsgp import SNSGP
+    from snsgp.utils.inducing_functions import f_kmeans
     import torch
     import numpy as np
 
@@ -19,8 +19,9 @@ def test_model():
     y = ((y-offset)/scale).reshape(-1, 1)
 
     X_new = torch.linspace(-1, 1, 100).reshape(-1, 1)
-    X_bar = f_kmeans(X, num_inducing_points=5)#, random_state=0)
-    model = NSGP(X, y, X_bar=X_bar, jitter=10**-5)#, random_state=0)
+    X_bar = f_kmeans(X, num_inducing_points=5, random_state=0)
+    Xm = f_kmeans(X, num_inducing_points=10, random_state=0)
+    model = SNSGP(X, y, X_bar=X_bar,Xm=Xm, jitter=10**-3, random_state=0)
     optim = torch.optim.Adam(model.parameters(), lr=0.1)
     # optim = torch.optim.SGD(model.parameters(), lr=0.01)
 
