@@ -5,7 +5,9 @@ import torch.autograd.profiler as profiler
 
 class SNSGP(torch.nn.Module):
     def __init__(self, X, y, X_bar=None, Xm=None,
-                 jitter=10**-8, random_state=None, local_noise=True, local_std=True, 
+                 init_mean=0., init_std = 1.,
+                 jitter=10**-8, random_state=None, 
+                 local_noise=True, local_std=True, 
                  device='cuda', debug=False):
         super().__init__()
 
@@ -25,6 +27,8 @@ class SNSGP(torch.nn.Module):
         self.N = self.X.shape[0]
         self.m = self.Xm.shape[0]
         self.input_dim = self.X.shape[1]
+        self.init_mean = init_mean
+        self.init_std = init_std
 
         self.num_latent_points = self.X_bar.shape[0]
 
@@ -65,7 +69,7 @@ class SNSGP(torch.nn.Module):
         torch.manual_seed(self.random_state)
         for param in self.parameters():
             if param.requires_grad:
-                torch.nn.init.normal_(param, mean=0.0, std=1.0)
+                torch.nn.init.normal_(param, mean=self.init_mean, std=self.init_std)
             else:
                 torch.nn.init.constant_(param, 1.)
 
